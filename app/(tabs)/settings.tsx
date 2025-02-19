@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../_layout';
+import { Link, router } from 'expo-router';
 
 export default function SettingsScreen() {
   const { setIsAuthenticated } = useAuth();
@@ -28,8 +29,9 @@ export default function SettingsScreen() {
 
   const handleLogout = async () => {
     try {
-      await AsyncStorage.multiRemove(['userToken', 'userData']);
+      await AsyncStorage.removeItem('userData');
       setIsAuthenticated(false);
+      router.replace('/sign-up');
     } catch (error) {
       console.error('Logout error:', error);
     }
@@ -124,6 +126,7 @@ export default function SettingsScreen() {
               icon="log-out"
               title="Logout"
               onPress={() => {
+
                 Alert.alert(
                   "Logout",
                   "Are you sure you want to logout?",

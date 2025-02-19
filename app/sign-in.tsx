@@ -32,8 +32,7 @@ export default function SignInScreen() {
         return;
       }
 
-      const { token, user } = await mockSignIn(email, password);
-      await AsyncStorage.setItem('userToken', token);
+      const { user } = await mockSignIn(email, password);
       await AsyncStorage.setItem('userData', JSON.stringify(user));
       router.replace('/(tabs)');
     } catch (err) {
