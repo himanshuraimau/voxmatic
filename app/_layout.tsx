@@ -1,11 +1,24 @@
+import { useEffect } from 'react';
 import { Stack } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 
-export default function Layout() {
+declare global {
+  interface Window {
+    frameworkReady?: () => void;
+  }
+}
+
+export default function RootLayout() {
+  useEffect(() => {
+    window.frameworkReady?.();
+  }, []);
+
   return (
-    <Stack>
-      {/* You can add screen options here that apply to all screens in the stack */}
-      {/* For example: */}
-      {/* <Stack.Screen name="index" options={{ title: 'Home' }} /> */}
-    </Stack>
+    <>
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="+not-found" />
+      </Stack>
+      <StatusBar style="auto" />
+    </>
   );
 }
