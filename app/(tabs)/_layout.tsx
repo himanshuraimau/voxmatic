@@ -7,15 +7,11 @@ import { EventRegister } from 'react-native-event-listeners';
 type AddModalContextType = {
   showAddModal: () => void;
   hideAddModal: () => void;
-  setActiveTab: (tab: 'notes' | 'todos') => void;
-  activeTab: 'notes' | 'todos';
 };
 
 export const AddModalContext = createContext<AddModalContextType>({
   showAddModal: () => {},
   hideAddModal: () => {},
-  setActiveTab: () => {},
-  activeTab: 'notes',
 });
 
 export function useAddModal() {
@@ -24,13 +20,12 @@ export function useAddModal() {
 
 export default function TabLayout() {
   const [modalVisible, setModalVisible] = useState(false);
-  const [activeTab, setActiveTab] = useState<'notes' | 'todos'>('notes');
 
   const showAddModal = () => setModalVisible(true);
   const hideAddModal = () => setModalVisible(false);
 
   return (
-    <AddModalContext.Provider value={{ showAddModal, hideAddModal, setActiveTab, activeTab }}>
+    <AddModalContext.Provider value={{ showAddModal, hideAddModal }}>
       <View style={{ flex: 1 }}>
         <Tabs
           screenOptions={{
@@ -50,21 +45,6 @@ export default function TabLayout() {
               tabBarIcon: ({ size, color }) => (
                 <Ionicons name="home" size={size} color={color} />
               ),
-              listeners: {
-                tabPress: () => setActiveTab('notes'),
-              },
-            }}
-          />
-          <Tabs.Screen
-            name="todos"
-            options={{
-              title: 'Tasks',
-              tabBarIcon: ({ size, color }) => (
-                <Ionicons name="checkbox" size={size} color={color} />
-              ),
-              listeners: {
-                tabPress: () => setActiveTab('todos'),
-              },
             }}
           />
           <Tabs.Screen
@@ -107,7 +87,6 @@ export default function TabLayout() {
                 style={styles.option}
                 onPress={() => {
                   hideAddModal();
-                  setActiveTab('notes');
                   EventRegister.emit('showNoteModal');
                 }}>
                 <Ionicons name="document-text" size={24} color="#f4b400" />
@@ -117,7 +96,6 @@ export default function TabLayout() {
                 style={styles.option}
                 onPress={() => {
                   hideAddModal();
-                  setActiveTab('todos');
                   EventRegister.emit('focusTodoInput');
                 }}>
                 <Ionicons name="checkbox" size={24} color="#f4b400" />

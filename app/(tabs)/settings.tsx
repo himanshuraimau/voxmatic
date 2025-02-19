@@ -1,11 +1,39 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, Switch } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, Switch, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useAuth } from '../_layout';
 
 export default function SettingsScreen() {
+  const { setIsAuthenticated } = useAuth();
   const [isDarkMode, setIsDarkMode] = React.useState(false);
   const [notifications, setNotifications] = React.useState(true);
+  const [userData, setUserData] = React.useState<any>(null);
+
+  React.useEffect(() => {
+    loadUserData();
+  }, []);
+
+  const loadUserData = async () => {
+    try {
+      const data = await AsyncStorage.getItem('userData');
+      if (data) {
+        setUserData(JSON.parse(data));
+      }
+    } catch (error) {
+      console.error('Error loading user data:', error);
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await AsyncStorage.multiRemove(['userToken', 'userData']);
+      setIsAuthenticated(false);
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
+  };
 
   interface SettingItemProps {
     icon: keyof typeof Ionicons.glyphMap;
@@ -78,7 +106,7 @@ export default function SettingsScreen() {
             <SettingItem
               icon="person"
               title="Profile"
-              value="John Doe"
+              value={userData?.name || 'Loading...'}
               onPress={() => {}}
             />
             <SettingItem
@@ -91,6 +119,20 @@ export default function SettingsScreen() {
               icon="lock-closed"
               title="Privacy"
               onPress={() => {}}
+            />
+            <SettingItem
+              icon="log-out"
+              title="Logout"
+              onPress={() => {
+                Alert.alert(
+                  "Logout",
+                  "Are you sure you want to logout?",
+                  [
+                    { text: "Cancel", style: "cancel" },
+                    { text: "Logout", onPress: handleLogout, style: "destructive" }
+                  ]
+                );
+              }}
             />
           </View>
         </View>
