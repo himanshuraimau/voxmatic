@@ -13,6 +13,7 @@ import { Link, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { styles } from '../constants/signUpStyles';
+import { supabase } from '../utils/supabase';
 
 export default function SignUpScreen() {
   const [name, setName] = useState('');
@@ -25,6 +26,7 @@ export default function SignUpScreen() {
 
   const handleSignUp = async () => {
     try {
+      setError('');
       if (!name || !email || !password || !confirmPassword) {
         setError('Please fill in all fields');
         return;
@@ -35,11 +37,27 @@ export default function SignUpScreen() {
         return;
       }
 
-      // TODO: Replace with actual registration
-      await AsyncStorage.setItem('userToken', 'dummy-token');
+      const { data: { user }, error: signUpError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            full_name: name,
+          },
+        },
+      });
+
+      if (signUpError) {
+        setError(signUpError.message);
+        return;
+      }
+
+      if (user) {
+        await AsyncStorage.setItem('userData', JSON.stringify(user));
+      }
       router.replace('/(tabs)');
     } catch (err) {
-      setError('Failed to sign up');
+      setError(err instanceof Error ? err.message : 'Failed to sign up');
     }
   };
 

@@ -12,7 +12,7 @@ import {
 import { Link, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { mockSignIn } from '../utils/mockAuth';
+import { supabase } from '../utils/supabase';
 import { styles } from '../constants/signInStyles';
 
 export default function SignInScreen() {
@@ -29,13 +29,37 @@ export default function SignInScreen() {
 
       if (!email || !password) {
         setError('Please fill in all fields');
+        setIsLoading(false);
         return;
       }
 
-      const { user } = await mockSignIn(email, password);
-      await AsyncStorage.setItem('userData', JSON.stringify(user));
-      router.replace('/(tabs)');
+      const { data, error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (signInError) {
+        console.error('Sign in error:', signInError);
+        setError(signInError.message);
+        setIsLoading(false);
+        return;
+      }
+
+      if (!data?.user) {
+        setError('No user data received');
+        setIsLoading(false);
+        return;
+      }
+
+      await AsyncStorage.setItem('userData', JSON.stringify(data.user));
+      
+      // Add a small delay to ensure AsyncStorage is updated
+      setTimeout(() => {
+        router.replace('/(tabs)');
+      }, 100);
+
     } catch (err) {
+      console.error('Sign in catch error:', err);
       setError(err instanceof Error ? err.message : 'Failed to sign in');
     } finally {
       setIsLoading(false);
@@ -96,9 +120,12 @@ export default function SignInScreen() {
               </Pressable>
 
               <Pressable 
-                style={[styles.signInButton, isLoading && styles.signInButtonDisabled]} 
+                style={[
+                  styles.signInButton, 
+                  (isLoading || !email || !password) && styles.signInButtonDisabled
+                ]} 
                 onPress={handleSignIn}
-                disabled={isLoading}>
+                disabled={isLoading || !email || !password}>
                 <Text style={styles.signInButtonText}>
                   {isLoading ? 'Signing in...' : 'Sign In'}
                 </Text>

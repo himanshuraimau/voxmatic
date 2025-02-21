@@ -6,6 +6,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../_layout';
 import { styles } from '@/constants/settingsStyles';
 import { Link, router } from 'expo-router';
+import { supabase } from '../../utils/supabase';
 
 export default function SettingsScreen() {
   const { setIsAuthenticated } = useAuth();
@@ -30,6 +31,7 @@ export default function SettingsScreen() {
 
   const handleLogout = async () => {
     try {
+      await supabase.auth.signOut();
       await AsyncStorage.removeItem('userData');
       setIsAuthenticated(false);
       router.replace('/sign-up');
