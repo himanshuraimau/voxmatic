@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
   TextInput,
   Pressable,
   ImageBackground,
@@ -14,6 +13,7 @@ import { Link, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { mockSignIn } from '../utils/mockAuth';
+import { styles } from '../constants/signInStyles';
 
 export default function SignInScreen() {
   const [email, setEmail] = useState('');
@@ -119,109 +119,3 @@ export default function SignInScreen() {
     </ImageBackground>
   );
 }
-
-const styles = StyleSheet.create({
-  background: {
-    flex: 1,
-  },
-  container: {
-    flex: 1,
-  },
-  scrollContent: {
-    flexGrow: 1,
-  },
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
-    padding: 20,
-    justifyContent: 'flex-end',
-    paddingBottom: 40,
-  },
-  header: {
-    marginBottom: 40,
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#fff',
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 18,
-    color: '#fff',
-    opacity: 0.8,
-  },
-  form: {
-    backgroundColor: '#fff',
-    borderRadius: 20,
-    padding: 20,
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-  },
-  error: {
-    color: '#ff3b30',
-    marginBottom: 10,
-    textAlign: 'center',
-  },
-  inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#f5f5f5',
-    borderRadius: 10,
-    marginBottom: 16,
-    paddingHorizontal: 12,
-  },
-  inputIcon: {
-    marginRight: 10,
-  },
-  input: {
-    flex: 1,
-    height: 50,
-    fontSize: 16,
-  },
-  passwordInput: {
-    paddingRight: 40,
-  },
-  eyeIcon: {
-    position: 'absolute',
-    right: 12,
-  },
-  forgotPassword: {
-    alignItems: 'flex-end',
-    marginBottom: 20,
-  },
-  forgotPasswordText: {
-    color: '#f4b400',
-    fontSize: 14,
-  },
-  signInButton: {
-    backgroundColor: '#f4b400',
-    borderRadius: 10,
-    height: 50,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  signInButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  signUpContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-  },
-  signUpText: {
-    color: '#666',
-  },
-  signUpLink: {
-    color: '#f4b400',
-    fontWeight: '600',
-  },
-  signInButtonDisabled: {
-    opacity: 0.7,
-  },
-});
