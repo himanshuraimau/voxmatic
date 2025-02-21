@@ -1,19 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, TextInput, Modal } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, TextInput, Modal, Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { styles } from '@/constants/notesStyles';
 import NoteCard from '../components/NoteCard';
-
-type Note = {
-  id: string;
-  title: string;
-  content: string;
-  timestamp: string;
-  color: string;
-};
+import { supabase } from '../utils/supabase';
+import type { Note } from '../types/database.types';
 
 const COLORS = ['#fff9c4', '#ffecb3', '#ffe0b2', '#ffccbc'];
 
@@ -30,47 +24,80 @@ export default function NotesScreen() {
 
   const loadNotes = async () => {
     try {
-      const savedNotes = await AsyncStorage.getItem('notes');
-      if (savedNotes) {
-        setNotes(JSON.parse(savedNotes));
-      }
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from('notes')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setNotes(data || []);
     } catch (error) {
       console.error('Error loading notes:', error);
     }
   };
 
-  const saveNotes = async (updatedNotes: Note[]) => {
+  const addNote = async () => {
+    if (title.trim() === '' && content.trim() === '') return;
+
     try {
-      await AsyncStorage.setItem('notes', JSON.stringify(updatedNotes));
+      const { data: { user } } = await supabase.auth.getUser();
+      console.log('Current user:', user); // Debug log
+
+      if (!user) {
+        console.error('No user found');
+        return;
+      }
+
+      const newNote = {
+        user_id: user.id,
+        title: title.trim(),
+        content: content.trim(),
+        color: selectedColor,
+        timestamp: new Date().toLocaleString(), // Add timestamp
+      };
+
+      console.log('Attempting to add note:', newNote); // Debug log
+
+      const { data, error } = await supabase
+        .from('notes')
+        .insert([newNote])
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error inserting note:', error); // Debug log
+        throw error;
+      }
+
+      console.log('Note added successfully:', data); // Debug log
+      loadNotes();
+      setNoteModalVisible(false);
+      setTitle('');
+      setContent('');
+      setSelectedColor(COLORS[0]);
     } catch (error) {
-      console.error('Error saving notes:', error);
+      console.error('Error in addNote:', error);
+      // Optionally show error to user
+      Alert.alert('Error', 'Failed to add note. Please try again.');
     }
   };
 
-  const addNote = () => {
-    if (title.trim() === '' && content.trim() === '') return;
+  const deleteNote = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('notes')
+        .delete()
+        .eq('id', id);
 
-    const newNote: Note = {
-      id: Date.now().toString(),
-      title: title.trim(),
-      content: content.trim(),
-      timestamp: new Date().toLocaleString(),
-      color: selectedColor,
-    };
-
-    const updatedNotes = [newNote, ...notes];
-    setNotes(updatedNotes);
-    saveNotes(updatedNotes);
-    setNoteModalVisible(false);
-    setTitle('');
-    setContent('');
-    setSelectedColor(COLORS[0]);
-  };
-
-  const deleteNote = (id: string) => {
-    const updatedNotes = notes.filter(note => note.id !== id);
-    setNotes(updatedNotes);
-    saveNotes(updatedNotes);
+      if (error) throw error;
+      loadNotes(); // Reload notes after deletion
+    } catch (error) {
+      console.error('Error deleting note:', error);
+    }
   };
 
   return (

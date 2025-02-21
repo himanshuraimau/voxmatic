@@ -5,12 +5,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import TodoItem from '../components/TodoItem';
-
-type Todo = {
-  id: string;
-  text: string;
-  completed: boolean;
-};
+import { styles } from '@/constants/todosStyles';
+import { supabase } from '@/utils/supabase';
+import { Todo } from '@/types/database.types';
 
 export default function TodoScreen() {
   const [todos, setTodos] = useState<Todo[]>([]);
@@ -40,35 +37,43 @@ export default function TodoScreen() {
     }
   };
 
-  const addTodo = () => {
+  const addTodo = async () => {
     if (newTodoText.trim() === '') return;
 
-    const newTodo: Todo = {
-      id: Date.now().toString(),
-      text: newTodoText.trim(),
-      completed: false,
-    };
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
 
-    const updatedTodos = [newTodo, ...todos];
-    setTodos(updatedTodos);
-    saveTodos(updatedTodos);
-    setTodoModalVisible(false);
-    setNewTodoText('');
-  };
+      const newTodo = {
+        user_id: user.id,
+        text: newTodoText.trim(),
+        completed: false,
+      };
 
-  const toggleTodo = (id: string) => {
-    const updatedTodos = todos.map(todo =>
-      todo.id === id ? { ...todo, completed: !todo.completed } : todo
-    );
-    setTodos(updatedTodos);
-    saveTodos(updatedTodos);
-  };
+      const { data, error } = await supabase
+        .from('todos')
+        .insert([newTodo])
+        .select()
+        .single();
 
-  const deleteTodo = (id: string) => {
-    const updatedTodos = todos.filter(todo => todo.id !== id);
-    setTodos(updatedTodos);
-    saveTodos(updatedTodos);
+      if (error) throw error;
+
+      console.log('Todo added successfully:', data); // Add this line
+
+      loadTodos(); // Reload todos after adding
+      setTodoModalVisible(false);
+      setNewTodoText('');
+    } catch (error) {
+      console.error('Error adding todo:', error);
+    }
   };
+  function toggleTodo(id: string): void {
+    throw new Error('Function not implemented.');
+  }
+
+  function deleteTodo(id: string): void {
+    throw new Error('Function not implemented.');
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -126,71 +131,3 @@ export default function TodoScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f5f5f5',
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 16,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-  },
-  backButton: {
-    padding: 4,
-  },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: '600',
-  },
-  addButton: {
-    padding: 4,
-  },
-  content: {
-    flex: 1,
-    paddingVertical: 8,
-  },
-  modalContainer: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
-  },
-  modalContent: {
-    backgroundColor: '#fff',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    padding: 20,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-  },
-  todoInput: {
-    fontSize: 16,
-    padding: 12,
-    backgroundColor: '#f5f5f5',
-    borderRadius: 8,
-    marginBottom: 16,
-  },
-  addTodoButton: {
-    backgroundColor: '#f4b400',
-    padding: 16,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  addTodoButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-});

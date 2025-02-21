@@ -1,7 +1,8 @@
 import { useEffect, useState, createContext, useContext } from 'react';
-import { Redirect, Stack } from 'expo-router';
+import { Redirect, Stack, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { supabase } from '../utils/supabase'; // Import supabase
 
 declare global {
   interface Window {
@@ -24,9 +25,9 @@ export function useAuth() {
 }
 
 export default function RootLayout() {
-  // Change initial state to false instead of null
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const router = useRouter();
 
   useEffect(() => {
     window.frameworkReady?.();
@@ -35,16 +36,20 @@ export default function RootLayout() {
 
   const checkAuthStatus = async () => {
     try {
-      const token = await AsyncStorage.getItem('userToken');
-      setIsAuthenticated(!!token);
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        setIsAuthenticated(true);
+      } else {
+        setIsAuthenticated(false);
+      }
     } catch (error) {
+      console.error("Authentication check failed:", error);
       setIsAuthenticated(false);
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Show loading indicator while checking auth status
   if (isLoading) {
     return null;
   }
@@ -52,7 +57,7 @@ export default function RootLayout() {
   return (
     <AuthContext.Provider value={{ isAuthenticated, setIsAuthenticated }}>
       <Stack screenOptions={{ headerShown: false }}>
-        {!isAuthenticated ? (
+        {isAuthenticated === false ? (
           <>
             <Stack.Screen name="sign-in" />
             <Stack.Screen name="sign-up" />
