@@ -6,14 +6,56 @@ export const styles = StyleSheet.create({
         backgroundColor: '#f5f5f5',
     },
     header: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
         padding: 16,
-        backgroundColor: '#fff',
         borderBottomWidth: 1,
         borderBottomColor: '#eee',
     },
     headerTitle: {
         fontSize: 24,
         fontWeight: '600',
+    },
+    headerDate: {
+        fontSize: 18,
+        fontWeight: '600',
+        color: '#333',
+    },
+    calendarButton: {
+        padding: 8,
+    },
+    placeholder: {
+        width: 40,
+    },
+    calendarStrip: {
+        maxHeight: 80,
+        backgroundColor: '#f5f5f5',
+        borderBottomWidth: 1,
+        borderBottomColor: '#eee',
+    },
+    dateButton: {
+        padding: 12,
+        alignItems: 'center',
+        justifyContent: 'center',
+        minWidth: 60,
+    },
+    selectedDate: {
+        backgroundColor: '#007AFF',
+        borderRadius: 8,
+    },
+    dateText: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: '#333',
+    },
+    dayText: {
+        fontSize: 12,
+        color: '#666',
+        marginTop: 4,
+    },
+    selectedDateText: {
+        color: '#fff',
     },
     content: {
         flex: 1,

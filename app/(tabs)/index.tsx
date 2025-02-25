@@ -3,6 +3,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { View, Text, TextInput, Pressable, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { EventRegister } from 'react-native-event-listeners';
+import { Ionicons } from '@expo/vector-icons';
 import { styles } from '@/constants/tabIndexStyles';
 import TodosSection from '../../components/home/TodosSection';
 import NotesSection from '../../components/home/NotesSection';
@@ -22,6 +23,8 @@ export default function HomeScreen() {
   const [newTodo, setNewTodo] = useState('');
   const [showTodoInput, setShowTodoInput] = useState(false);
   const todoInputRef = useRef<TextInput>(null);
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [calendarVisible, setCalendarVisible] = useState(false);
 
   useEffect(() => {
     const cleanup = setupEventListeners();
@@ -196,50 +199,109 @@ export default function HomeScreen() {
     }
   };
 
+  const formatDate = (date: Date) => {
+    const options: Intl.DateTimeFormatOptions = {
+      weekday: 'long',
+      month: 'long',
+      day: 'numeric'
+    };
+    return date.toLocaleDateString('en-US', options);
+  };
+
+  const generateCalendarDays = () => {
+    const days = [];
+    for (let i = -15; i <= 15; i++) {
+      const date = new Date(selectedDate);
+      date.setDate(date.getDate() + i);
+      days.push(date);
+    }
+    return days;
+  };
+
+  const selectDate = (date: Date) => {
+    setSelectedDate(date);
+    setCalendarVisible(false);
+    // You can add logic here to filter notes/todos by date
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Home</Text>
-      </View>
-
-      {
-    showTodoInput && (
-      <View style={styles.todoInputContainer}>
-        <TextInput
-          ref={todoInputRef}
-          style={styles.todoInput}
-          placeholder="Add a new todo"
-          value={newTodo}
-          onChangeText={setNewTodo}
-          onSubmitEditing={addTodo}
-          onBlur={() => !newTodo && setShowTodoInput(false)}
-        />
-        <Pressable style={styles.todoAddButton} onPress={addTodo}>
-          <Text style={styles.todoAddButtonText}>Add</Text>
+        <Pressable onPress={() => setCalendarVisible(true)} style={styles.calendarButton}>
+          <Ionicons name="calendar" size={24} color="#666" />
         </Pressable>
+        <Text style={styles.headerDate}>{formatDate(selectedDate)}</Text>
+        <View style={styles.placeholder} />
       </View>
-    )
-  }
 
-      <><ScrollView style={styles.content}>
-    <TodosSection
-      todos={todos}
-      onToggleTodo={toggleTodo}
-      onDeleteTodo={deleteTodo} />
-    <NotesSection
-      notes={notes}
-      onDeleteNote={deleteNote} />
-  </ScrollView><NewNoteModal
-      visible={noteModalVisible}
-      title={title}
-      content={content}
-      selectedColor={selectedColor}
-      colors={COLORS}
-      onChangeTitle={setTitle}
-      onChangeContent={setContent}
-      onSelectColor={setSelectedColor}
-      onSave={addNote}
-      onClose={() => setNoteModalVisible(false)} /></>
-    </SafeAreaView >
+      {calendarVisible && (
+        <ScrollView horizontal style={styles.calendarStrip}>
+          {generateCalendarDays().map((date, index) => (
+            <Pressable
+              key={index}
+              style={[
+                styles.dateButton,
+                date.toDateString() === selectedDate.toDateString() && styles.selectedDate
+              ]}
+              onPress={() => selectDate(date)}
+            >
+              <Text style={[
+                styles.dateText,
+                date.toDateString() === selectedDate.toDateString() && styles.selectedDateText
+              ]}>
+                {date.getDate()}
+              </Text>
+              <Text style={[
+                styles.dayText,
+                date.toDateString() === selectedDate.toDateString() && styles.selectedDateText
+              ]}>
+                {date.toLocaleDateString('en-US', { weekday: 'short' })}
+              </Text>
+            </Pressable>
+          ))}
+        </ScrollView>
+      )}
+
+      {showTodoInput && (
+        <View style={styles.todoInputContainer}>
+          <TextInput
+            ref={todoInputRef}
+            style={styles.todoInput}
+            placeholder="Add a new todo"
+            value={newTodo}
+            onChangeText={setNewTodo}
+            onSubmitEditing={addTodo}
+            onBlur={() => !newTodo && setShowTodoInput(false)}
+          />
+          <Pressable style={styles.todoAddButton} onPress={addTodo}>
+            <Text style={styles.todoAddButtonText}>Add</Text>
+          </Pressable>
+        </View>
+      )}
+
+      <ScrollView style={styles.content}>
+        <TodosSection
+          todos={todos}
+          onToggleTodo={toggleTodo}
+          onDeleteTodo={deleteTodo}
+        />
+        <NotesSection
+          notes={notes}
+          onDeleteNote={deleteNote}
+        />
+      </ScrollView>
+      <NewNoteModal
+        visible={noteModalVisible}
+        title={title}
+        content={content}
+        selectedColor={selectedColor}
+        colors={COLORS}
+        onChangeTitle={setTitle}
+        onChangeContent={setContent}
+        onSelectColor={setSelectedColor}
+        onSave={addNote}
+        onClose={() => setNoteModalVisible(false)}
+      />
+    </SafeAreaView>
   );
 }
