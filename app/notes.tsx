@@ -5,8 +5,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { styles } from '@/constants/notesStyles';
 import NoteCard from '../components/NoteCard';
-import { supabase } from '../utils/supabase';
-import type { Note } from '../types/database.types';
+import { homeService } from '@/services/homeService';
+import type { Note } from '@/types/database.types';
 
 const COLORS = ['#fff9c4', '#ffecb3', '#ffe0b2', '#ffccbc'];
 
@@ -23,17 +23,8 @@ export default function NotesScreen() {
 
   const loadNotes = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const { data, error } = await supabase
-        .from('notes')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      setNotes(data || []);
+      const data = await homeService.loadAllNotes();
+      setNotes(data);
     } catch (error) {
       console.error('Error loading notes:', error);
     }
@@ -43,21 +34,7 @@ export default function NotesScreen() {
     if (title.trim() === '' && content.trim() === '') return;
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const newNote = {
-        user_id: user.id,
-        title: title.trim(),
-        content: content.trim(),
-        color: selectedColor,
-      };
-
-      const { error } = await supabase
-        .from('notes')
-        .insert([newNote]);
-
-      if (error) throw error;
+      await homeService.addNote(title, content, selectedColor);
       loadNotes();
       setNoteModalVisible(false);
       setTitle('');
@@ -70,13 +47,8 @@ export default function NotesScreen() {
 
   const deleteNote = async (id: string) => {
     try {
-      const { error } = await supabase
-        .from('notes')
-        .delete()
-        .eq('id', id);
-
-      if (error) throw error;
-      loadNotes(); // Reload notes after deletion
+      await homeService.deleteNote(id);
+      loadNotes();
     } catch (error) {
       console.error('Error deleting note:', error);
     }

@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, TextInput, Modal } from 'react-native';
+import { View, Text, ScrollView, Pressable, TextInput, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import TodoItem from '../components/TodoItem';
 import { styles } from '@/constants/todosStyles';
-import { supabase } from '@/utils/supabase';
-import { Todo } from '@/types/database.types';
+import { homeService } from '@/services/homeService';
+import type { Todo } from '@/types/database.types';
 
 export default function TodoScreen() {
   const [todos, setTodos] = useState<Todo[]>([]);
@@ -19,17 +19,8 @@ export default function TodoScreen() {
 
   const loadTodos = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const { data, error } = await supabase
-        .from('todos')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      setTodos(data || []);
+      const data = await homeService.loadAllTodos();
+      setTodos(data);
     } catch (error) {
       console.error('Error loading todos:', error);
     }
@@ -39,26 +30,8 @@ export default function TodoScreen() {
     if (newTodoText.trim() === '') return;
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const newTodo = {
-        user_id: user.id,
-        text: newTodoText.trim(),
-        completed: false,
-      };
-
-      const { data, error } = await supabase
-        .from('todos')
-        .insert([newTodo])
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      console.log('Todo added successfully:', data); // Add this line
-
-      loadTodos(); // Reload todos after adding
+      await homeService.addNewTodo(newTodoText);
+      loadTodos();
       setTodoModalVisible(false);
       setNewTodoText('');
     } catch (error) {
@@ -70,13 +43,7 @@ export default function TodoScreen() {
     try {
       const todo = todos.find(t => t.id === id);
       if (!todo) return;
-
-      const { error } = await supabase
-        .from('todos')
-        .update({ completed: !todo.completed })
-        .eq('id', id);
-
-      if (error) throw error;
+      await homeService.toggleTodo(id, todo.completed);
       loadTodos();
     } catch (error) {
       console.error('Error toggling todo:', error);
@@ -85,12 +52,7 @@ export default function TodoScreen() {
 
   const deleteTodo = async (id: string) => {
     try {
-      const { error } = await supabase
-        .from('todos')
-        .delete()
-        .eq('id', id);
-
-      if (error) throw error;
+      await homeService.deleteTodo(id);
       loadTodos();
     } catch (error) {
       console.error('Error deleting todo:', error);
