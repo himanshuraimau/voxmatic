@@ -6,12 +6,16 @@ import { useAuth } from '../_layout';
 import { styles } from '@/constants/settingsStyles';
 import { router } from 'expo-router';
 import { supabase } from '../../utils/supabase';
+import { useTheme } from '../../context/ThemeContext';
+import { theme } from '../../constants/theme';
 
 export default function SettingsScreen() {
   const { setIsAuthenticated } = useAuth();
-  const [isDarkMode, setIsDarkMode] = React.useState(false);
+  const { isDarkMode, toggleTheme } = useTheme();
   const [notifications, setNotifications] = React.useState(true);
   const [userData, setUserData] = React.useState<any>(null);
+  
+  const currentTheme = isDarkMode ? theme.dark : theme.light;
 
   React.useEffect(() => {
     loadUserData();
@@ -47,44 +51,49 @@ export default function SettingsScreen() {
     showArrow?: boolean;
   }
 
-  const SettingItem = ({ icon, title, value, onPress, showToggle = false, showArrow = true }: SettingItemProps) => (
-    <Pressable style={styles.settingItem} onPress={onPress}>
-      <View style={styles.settingIcon}>
-        <Ionicons name={icon} size={22} color="#666" />
-      </View>
-      <View style={styles.settingContent}>
-        <Text style={styles.settingTitle}>{title}</Text>
-        {value && <Text style={styles.settingValue}>{value}</Text>}
-      </View>
-      {showToggle && (
-        <Switch
-          value={typeof value === 'boolean' ? value : false}
-          onValueChange={onPress}
-          trackColor={{ false: '#ddd', true: '#f4b400' }}
-          thumbColor="#fff"
-        />
-      )}
-      {showArrow && !showToggle && (
-        <Ionicons name="chevron-forward" size={20} color="#666" />
-      )}
-    </Pressable>
-  );
+  const SettingItem = ({ icon, title, value, onPress, showToggle = false, showArrow = true }: SettingItemProps) => {
+    const { isDarkMode } = useTheme();
+    const currentTheme = isDarkMode ? theme.dark : theme.light;
+
+    return (
+      <Pressable style={styles.settingItem} onPress={onPress}>
+        <View style={styles.settingIcon}>
+          <Ionicons name={icon} size={22} color={currentTheme.icon} />
+        </View>
+        <View style={styles.settingContent}>
+          <Text style={[styles.settingTitle, { color: currentTheme.text }]}>{title}</Text>
+          {value && <Text style={[styles.settingValue, { color: currentTheme.icon }]}>{value}</Text>}
+        </View>
+        {showToggle && (
+          <Switch
+            value={typeof value === 'boolean' ? value : false}
+            onValueChange={onPress}
+            trackColor={{ false: '#ddd', true: '#f4b400' }}
+            thumbColor="#fff"
+          />
+        )}
+        {showArrow && !showToggle && (
+          <Ionicons name="chevron-forward" size={20} color={currentTheme.icon} />
+        )}
+      </Pressable>
+    );
+  };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Settings</Text>
+    <SafeAreaView style={[styles.container, { backgroundColor: currentTheme.background }]}>
+      <View style={[styles.header, { backgroundColor: currentTheme.headerBackground }]}>
+        <Text style={[styles.headerTitle, { color: currentTheme.text }]}>Settings</Text>
       </View>
 
-      <ScrollView style={styles.content}>
+      <ScrollView style={[styles.content, { backgroundColor: currentTheme.background }]}>
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Preferences</Text>
-          <View style={styles.sectionContent}>
+          <Text style={[styles.sectionTitle, { color: currentTheme.text }]}>Preferences</Text>
+          <View style={[styles.sectionContent, { backgroundColor: currentTheme.sectionBackground }]}>
             <SettingItem
               icon="moon"
               title="Dark Mode"
               value={isDarkMode}
-              onPress={() => setIsDarkMode(!isDarkMode)}
+              onPress={toggleTheme}
               showToggle
             />
             <SettingItem
@@ -104,8 +113,8 @@ export default function SettingsScreen() {
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Account</Text>
-          <View style={styles.sectionContent}>
+          <Text style={[styles.sectionTitle, { color: currentTheme.text }]}>Account</Text>
+          <View style={[styles.sectionContent, { backgroundColor: currentTheme.sectionBackground }]}>
             <SettingItem
               icon="person"
               title="Profile"
@@ -142,8 +151,8 @@ export default function SettingsScreen() {
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>About</Text>
-          <View style={styles.sectionContent}>
+          <Text style={[styles.sectionTitle, { color: currentTheme.text }]}>About</Text>
+          <View style={[styles.sectionContent, { backgroundColor: currentTheme.sectionBackground }]}>
             <SettingItem
               icon="information-circle"
               title="Version"

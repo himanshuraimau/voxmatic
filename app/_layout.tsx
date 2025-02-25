@@ -2,6 +2,7 @@ import { useEffect, useState, createContext, useContext } from 'react';
 import { Stack, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { supabase } from '../utils/supabase'; // Import supabase
+import { ThemeProvider } from '../context/ThemeContext';
 
 declare global {
   interface Window {
@@ -55,17 +56,19 @@ export default function RootLayout() {
 
   return (
     <AuthContext.Provider value={{ isAuthenticated, setIsAuthenticated }}>
-      <Stack screenOptions={{ headerShown: false }}>
-        {isAuthenticated === false ? (
-          <>
-            <Stack.Screen name="sign-in" />
-            <Stack.Screen name="sign-up" />
-          </>
-        ) : (
-          <Stack.Screen name="(tabs)" />
-        )}
-      </Stack>
-      <StatusBar style="auto" />
+      <ThemeProvider>
+        <Stack screenOptions={{ headerShown: false }}>
+          {isAuthenticated === false ? (
+            <>
+              <Stack.Screen name="sign-in" />
+              <Stack.Screen name="sign-up" />
+            </>
+          ) : (
+            <Stack.Screen name="(tabs)" />
+          )}
+        </Stack>
+        <StatusBar style="auto" />
+      </ThemeProvider>
     </AuthContext.Provider>
   );
 }
