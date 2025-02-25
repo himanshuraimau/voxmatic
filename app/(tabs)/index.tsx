@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import { View, Text, TextInput, Pressable, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { EventRegister } from 'react-native-event-listeners';
@@ -7,6 +8,7 @@ import TodosSection from '../../components/home/TodosSection';
 import NotesSection from '../../components/home/NotesSection';
 import NewNoteModal from '../../components/home/NewNoteModal';
 import { homeService, Note, Todo } from '../../services/homeService';
+import { asyncStorageUtils } from '@/utils/asyncStorage';
 
 const COLORS = ['#fff9c4', '#ffecb3', '#ffe0b2', '#ffccbc'];
 
@@ -22,11 +24,16 @@ export default function HomeScreen() {
   const todoInputRef = useRef<TextInput>(null);
 
   useEffect(() => {
-    loadNotes();
-    loadTodos();
     const cleanup = setupEventListeners();
     return cleanup;
   }, []);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      loadNotes();
+      loadTodos();
+    }, [])
+  );
 
   const setupEventListeners = () => {
     const showNoteModalListener = EventRegister.addEventListener(
@@ -52,8 +59,16 @@ export default function HomeScreen() {
 
   const loadNotes = async () => {
     try {
-      const data = await homeService.loadNotes();
-      setNotes(data);
+      // First load from AsyncStorage for immediate display
+      const cachedNotes = await asyncStorageUtils.loadNotes();
+      setNotes(cachedNotes);
+
+      // Then fetch from backend and update if different
+      const backendNotes = await homeService.loadNotes();
+      if (JSON.stringify(backendNotes) !== JSON.stringify(cachedNotes)) {
+        setNotes(backendNotes);
+        await asyncStorageUtils.saveNotes(backendNotes);
+      }
     } catch (error) {
       console.error('Error loading notes:', error);
     }
@@ -61,8 +76,16 @@ export default function HomeScreen() {
 
   const loadTodos = async () => {
     try {
-      const data = await homeService.loadTodos();
-      setTodos(data);
+      // First load from AsyncStorage for immediate display
+      const cachedTodos = await asyncStorageUtils.loadTodos();
+      setTodos(cachedTodos);
+
+      // Then fetch from backend and update if different
+      const backendTodos = await homeService.loadTodos();
+      if (JSON.stringify(backendTodos) !== JSON.stringify(cachedTodos)) {
+        setTodos(backendTodos);
+        await asyncStorageUtils.saveTodos(backendTodos);
+      }
     } catch (error) {
       console.error('Error loading todos:', error);
     }
@@ -72,6 +95,21 @@ export default function HomeScreen() {
     if (title.trim() === '' && content.trim() === '') return;
 
     try {
+      // Optimistically update local state and AsyncStorage
+      const newNote: Note = {
+        id: Date.now().toString(),
+        title,
+        content,
+        color: selectedColor,
+        user_id: 'current-user',
+        created_at: new Date().toISOString(),
+        timestamp: new Date().toISOString() // Add the required timestamp property
+      };
+      const updatedNotes = [...notes, newNote];
+      setNotes(updatedNotes);
+      await asyncStorageUtils.saveNotes(updatedNotes);
+
+      // Update backend
       await homeService.addNote(title, content, selectedColor);
       loadNotes();
       setNoteModalVisible(false);
@@ -85,6 +123,12 @@ export default function HomeScreen() {
 
   const deleteNote = async (id: string) => {
     try {
+      // Optimistically update local state and AsyncStorage
+      const updatedNotes = notes.filter(note => note.id !== id);
+      setNotes(updatedNotes);
+      await asyncStorageUtils.saveNotes(updatedNotes);
+
+      // Update backend
       await homeService.deleteNote(id);
       loadNotes();
     } catch (error) {
@@ -96,6 +140,19 @@ export default function HomeScreen() {
     if (newTodo.trim() === '') return;
 
     try {
+      // Optimistically update local state and AsyncStorage
+      const newTodoItem = {
+        id: Date.now().toString(),
+        text: newTodo,
+        completed: false,
+        user_id: 'current-user',
+        created_at: new Date().toISOString()
+      };
+      const updatedTodos = [...todos, newTodoItem];
+      setTodos(updatedTodos);
+      await asyncStorageUtils.saveTodos(updatedTodos);
+
+      // Update backend
       await homeService.addTodo(newTodo);
       loadTodos();
       setNewTodo('');
@@ -107,9 +164,16 @@ export default function HomeScreen() {
 
   const toggleTodo = async (id: string) => {
     try {
+      // Optimistically update local state and AsyncStorage
+      const updatedTodos = todos.map(todo =>
+        todo.id === id ? { ...todo, completed: !todo.completed } : todo
+      );
+      setTodos(updatedTodos);
+      await asyncStorageUtils.saveTodos(updatedTodos);
+
+      // Update backend
       const todo = todos.find(t => t.id === id);
       if (!todo) return;
-
       await homeService.toggleTodo(id, todo.completed);
       loadTodos();
     } catch (error) {
@@ -119,6 +183,12 @@ export default function HomeScreen() {
 
   const deleteTodo = async (id: string) => {
     try {
+      // Optimistically update local state and AsyncStorage
+      const updatedTodos = todos.filter(todo => todo.id !== id);
+      setTodos(updatedTodos);
+      await asyncStorageUtils.saveTodos(updatedTodos);
+
+      // Update backend
       await homeService.deleteTodo(id);
       loadTodos();
     } catch (error) {

@@ -26,20 +26,30 @@ export const styles = StyleSheet.create({
         justifyContent: 'space-between',
         alignItems: 'center',
         paddingHorizontal: 16,
-        marginBottom: 8,
+        marginBottom: 12,
     },
     sectionTitle: {
         fontSize: 18,
         fontWeight: '600',
         color: '#666',
     },
+    headerButtons: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+    },
+    addButton: {
+        padding: 4,
+    },
     viewAllButton: {
         flexDirection: 'row',
         alignItems: 'center',
+        gap: 4,
     },
     viewAllText: {
         color: '#f4b400',
-        fontWeight: '600',
+        fontSize: 14,
+        fontWeight: '500',
         marginRight: 4,
     },
     todoInputContainer: {

@@ -8,6 +8,7 @@ import NoteCard from '../components/NoteCard';
 import { homeService } from '@/services/homeService';
 import type { Note } from '@/types/database.types';
 import { asyncStorageUtils } from '@/utils/asyncStorage';
+import { useFocusEffect } from '@react-navigation/native';
 
 const COLORS = ['#fff9c4', '#ffecb3', '#ffe0b2', '#ffccbc'];
 
@@ -18,9 +19,11 @@ export default function NotesScreen() {
   const [content, setContent] = useState('');
   const [selectedColor, setSelectedColor] = useState(COLORS[0]);
 
-  useEffect(() => {
-    loadNotes();
-  }, []);
+  useFocusEffect(
+    React.useCallback(() => {
+      loadNotes();
+    }, [])
+  );
 
   const loadNotes = async () => {
     try {
@@ -51,7 +54,7 @@ export default function NotesScreen() {
         color: selectedColor,
         user_id: 'current-user', // Replace with actual user ID
         created_at: new Date().toISOString(),
-        timestamp: ''
+        timestamp: new Date().toISOString() // Add the required timestamp property
       };
       const updatedNotes = [...notes, newNote];
       setNotes(updatedNotes);

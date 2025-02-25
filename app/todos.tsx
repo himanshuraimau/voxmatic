@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { View, Text, ScrollView, Pressable, TextInput, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -8,15 +8,18 @@ import { styles } from '@/constants/todosStyles';
 import { homeService } from '@/services/homeService';
 import type { Todo } from '@/types/database.types';
 import { asyncStorageUtils } from '@/utils/asyncStorage';
+import { useFocusEffect } from '@react-navigation/native';
 
 export default function TodoScreen() {
   const [todos, setTodos] = useState<Todo[]>([]);
   const [todoModalVisible, setTodoModalVisible] = useState(false);
   const [newTodoText, setNewTodoText] = useState('');
 
-  useEffect(() => {
-    loadTodos();
-  }, []);
+  useFocusEffect(
+    React.useCallback(() => {
+      loadTodos();
+    }, [])
+  );
 
   const loadTodos = async () => {
     try {
