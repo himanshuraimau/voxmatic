@@ -2,10 +2,9 @@ import React from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, Switch, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../_layout';
 import { styles } from '@/constants/settingsStyles';
-import { Link, router } from 'expo-router';
+import { router } from 'expo-router';
 import { supabase } from '../../utils/supabase';
 
 export default function SettingsScreen() {
@@ -20,9 +19,9 @@ export default function SettingsScreen() {
 
   const loadUserData = async () => {
     try {
-      const data = await AsyncStorage.getItem('userData');
-      if (data) {
-        setUserData(JSON.parse(data));
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        setUserData(user);
       }
     } catch (error) {
       console.error('Error loading user data:', error);
@@ -32,7 +31,6 @@ export default function SettingsScreen() {
   const handleLogout = async () => {
     try {
       await supabase.auth.signOut();
-      await AsyncStorage.removeItem('userData');
       setIsAuthenticated(false);
       router.replace('/sign-up');
     } catch (error) {

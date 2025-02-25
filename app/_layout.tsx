@@ -1,7 +1,6 @@
 import { useEffect, useState, createContext, useContext } from 'react';
-import { Redirect, Stack, useRouter } from 'expo-router';
+import { Stack, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../utils/supabase'; // Import supabase
 
 declare global {

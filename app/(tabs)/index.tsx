@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, TextInput, Modal } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { EventRegister } from 'react-native-event-listeners';
@@ -9,6 +8,7 @@ import NoteCard from '../../components/NoteCard';
 import TodoItem from '../../components/TodoItem';
 import { styles } from '@/constants/tabIndexStyles';
 import { useAddModal } from './_layout';
+import { supabase } from '../../utils/supabase';
 
 type Note = {
   id: string;
@@ -58,10 +58,17 @@ export default function HomeScreen() {
 
   const loadNotes = async () => {
     try {
-      const savedNotes = await AsyncStorage.getItem('notes');
-      if (savedNotes) {
-        setNotes(JSON.parse(savedNotes));
-      }
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from('notes')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setNotes(data || []);
     } catch (error) {
       console.error('Error loading notes:', error);
     }
@@ -69,85 +76,120 @@ export default function HomeScreen() {
 
   const loadTodos = async () => {
     try {
-      const savedTodos = await AsyncStorage.getItem('todos');
-      if (savedTodos) {
-        setTodos(JSON.parse(savedTodos));
-      }
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from('todos')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setTodos(data || []);
     } catch (error) {
       console.error('Error loading todos:', error);
     }
   };
 
-  const saveNotes = async (updatedNotes: Note[]) => {
-    try {
-      await AsyncStorage.setItem('notes', JSON.stringify(updatedNotes));
-    } catch (error) {
-      console.error('Error saving notes:', error);
-    }
-  };
-
-  const saveTodos = async (updatedTodos: Todo[]) => {
-    try {
-      await AsyncStorage.setItem('todos', JSON.stringify(updatedTodos));
-    } catch (error) {
-      console.error('Error saving todos:', error);
-    }
-  };
-
-  const addNote = () => {
+  const addNote = async () => {
     if (title.trim() === '' && content.trim() === '') return;
 
-    const newNote: Note = {
-      id: Date.now().toString(),
-      title: title.trim(),
-      content: content.trim(),
-      timestamp: new Date().toLocaleString(),
-      color: selectedColor,
-    };
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
 
-    const updatedNotes = [newNote, ...notes];
-    setNotes(updatedNotes);
-    saveNotes(updatedNotes);
-    setNoteModalVisible(false);
-    setTitle('');
-    setContent('');
-    setSelectedColor(COLORS[0]);
+      const newNote = {
+        user_id: user.id,
+        title: title.trim(),
+        content: content.trim(),
+        color: selectedColor,
+      };
+
+      const { error } = await supabase
+        .from('notes')
+        .insert([newNote]);
+
+      if (error) throw error;
+      loadNotes();
+      setNoteModalVisible(false);
+      setTitle('');
+      setContent('');
+      setSelectedColor(COLORS[0]);
+    } catch (error) {
+      console.error('Error adding note:', error);
+    }
   };
 
-  const deleteNote = (id: string) => {
-    const updatedNotes = notes.filter(note => note.id !== id);
-    setNotes(updatedNotes);
-    saveNotes(updatedNotes);
+  const deleteNote = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('notes')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+      loadNotes();
+    } catch (error) {
+      console.error('Error deleting note:', error);
+    }
   };
 
-  const addTodo = () => {
+  const addTodo = async () => {
     if (newTodo.trim() === '') return;
 
-    const todo: Todo = {
-      id: Date.now().toString(),
-      text: newTodo.trim(),
-      completed: false,
-    };
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
 
-    const updatedTodos = [todo, ...todos];
-    setTodos(updatedTodos);
-    saveTodos(updatedTodos);
-    setNewTodo('');
-    setShowTodoInput(false);
+      const todo = {
+        user_id: user.id,
+        text: newTodo.trim(),
+        completed: false,
+      };
+
+      const { error } = await supabase
+        .from('todos')
+        .insert([todo]);
+
+      if (error) throw error;
+      loadTodos();
+      setNewTodo('');
+      setShowTodoInput(false);
+    } catch (error) {
+      console.error('Error adding todo:', error);
+    }
   };
 
-  const toggleTodo = (id: string) => {
-    const updatedTodos = todos.map(todo =>
-      todo.id === id ? { ...todo, completed: !todo.completed } : todo
-    );
-    setTodos(updatedTodos);
-    saveTodos(updatedTodos);
+  const toggleTodo = async (id: string) => {
+    try {
+      const todo = todos.find(t => t.id === id);
+      if (!todo) return;
+
+      const { error } = await supabase
+        .from('todos')
+        .update({ completed: !todo.completed })
+        .eq('id', id);
+
+      if (error) throw error;
+      loadTodos();
+    } catch (error) {
+      console.error('Error toggling todo:', error);
+    }
   };
 
-  const deleteTodo = (id: string) => {
-    const updatedTodos = todos.filter(todo => todo.id !== id);
-    setTodos(updatedTodos);
-    saveTodos(updatedTodos);
+  const deleteTodo = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('todos')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+      loadTodos();
+    } catch (error) {
+      console.error('Error deleting todo:', error);
+    }
   };
 
   return (

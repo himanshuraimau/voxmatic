@@ -11,7 +11,6 @@ import {
 } from 'react-native';
 import { Link, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../utils/supabase';
 import { styles } from '../constants/signInStyles';
 
@@ -51,12 +50,7 @@ export default function SignInScreen() {
         return;
       }
 
-      await AsyncStorage.setItem('userData', JSON.stringify(data.user));
-      
-      // Add a small delay to ensure AsyncStorage is updated
-      setTimeout(() => {
-        router.replace('/(tabs)');
-      }, 100);
+      router.replace('/(tabs)');
 
     } catch (err) {
       console.error('Sign in catch error:', err);

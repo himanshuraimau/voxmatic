@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, TextInput, Modal, Alert } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { View, Text, ScrollView, Pressable, TextInput, Modal, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -45,44 +44,27 @@ export default function NotesScreen() {
 
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      console.log('Current user:', user); // Debug log
-
-      if (!user) {
-        console.error('No user found');
-        return;
-      }
+      if (!user) return;
 
       const newNote = {
         user_id: user.id,
         title: title.trim(),
         content: content.trim(),
         color: selectedColor,
-        timestamp: new Date().toLocaleString(), // Add timestamp
       };
 
-      console.log('Attempting to add note:', newNote); // Debug log
-
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('notes')
-        .insert([newNote])
-        .select()
-        .single();
+        .insert([newNote]);
 
-      if (error) {
-        console.error('Error inserting note:', error); // Debug log
-        throw error;
-      }
-
-      console.log('Note added successfully:', data); // Debug log
+      if (error) throw error;
       loadNotes();
       setNoteModalVisible(false);
       setTitle('');
       setContent('');
       setSelectedColor(COLORS[0]);
     } catch (error) {
-      console.error('Error in addNote:', error);
-      // Optionally show error to user
-      Alert.alert('Error', 'Failed to add note. Please try again.');
+      console.error('Error adding note:', error);
     }
   };
 

@@ -11,7 +11,6 @@ import {
 } from 'react-native';
 import { Link, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { styles } from '../constants/signUpStyles';
 import { supabase } from '../utils/supabase';
 
@@ -53,9 +52,8 @@ export default function SignUpScreen() {
       }
 
       if (user) {
-        await AsyncStorage.setItem('userData', JSON.stringify(user));
+        router.replace('/(tabs)');
       }
-      router.replace('/(tabs)');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to sign up');
     }

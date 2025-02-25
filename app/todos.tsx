@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, TextInput, Modal } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -20,20 +19,19 @@ export default function TodoScreen() {
 
   const loadTodos = async () => {
     try {
-      const savedTodos = await AsyncStorage.getItem('todos');
-      if (savedTodos) {
-        setTodos(JSON.parse(savedTodos));
-      }
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from('todos')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setTodos(data || []);
     } catch (error) {
       console.error('Error loading todos:', error);
-    }
-  };
-
-  const saveTodos = async (updatedTodos: Todo[]) => {
-    try {
-      await AsyncStorage.setItem('todos', JSON.stringify(updatedTodos));
-    } catch (error) {
-      console.error('Error saving todos:', error);
     }
   };
 
@@ -67,13 +65,37 @@ export default function TodoScreen() {
       console.error('Error adding todo:', error);
     }
   };
-  function toggleTodo(id: string): void {
-    throw new Error('Function not implemented.');
-  }
 
-  function deleteTodo(id: string): void {
-    throw new Error('Function not implemented.');
-  }
+  const toggleTodo = async (id: string) => {
+    try {
+      const todo = todos.find(t => t.id === id);
+      if (!todo) return;
+
+      const { error } = await supabase
+        .from('todos')
+        .update({ completed: !todo.completed })
+        .eq('id', id);
+
+      if (error) throw error;
+      loadTodos();
+    } catch (error) {
+      console.error('Error toggling todo:', error);
+    }
+  };
+
+  const deleteTodo = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('todos')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+      loadTodos();
+    } catch (error) {
+      console.error('Error deleting todo:', error);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.container}>
