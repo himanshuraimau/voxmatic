@@ -7,6 +7,7 @@ import { styles } from '@/constants/notesStyles';
 import NoteCard from '../components/NoteCard';
 import { homeService } from '@/services/homeService';
 import type { Note } from '@/types/database.types';
+import { asyncStorageUtils } from '@/utils/asyncStorage';
 
 const COLORS = ['#fff9c4', '#ffecb3', '#ffe0b2', '#ffccbc'];
 
@@ -23,8 +24,16 @@ export default function NotesScreen() {
 
   const loadNotes = async () => {
     try {
-      const data = await homeService.loadAllNotes();
-      setNotes(data);
+      // First load from AsyncStorage for immediate display
+      const cachedNotes = await asyncStorageUtils.loadNotes();
+      setNotes(cachedNotes);
+
+      // Then fetch from backend and update if different
+      const backendNotes = await homeService.loadAllNotes();
+      if (JSON.stringify(backendNotes) !== JSON.stringify(cachedNotes)) {
+        setNotes(backendNotes);
+        await asyncStorageUtils.saveNotes(backendNotes);
+      }
     } catch (error) {
       console.error('Error loading notes:', error);
     }
@@ -34,6 +43,21 @@ export default function NotesScreen() {
     if (title.trim() === '' && content.trim() === '') return;
 
     try {
+      // Optimistically update local state and AsyncStorage
+      const newNote: Note = {
+        id: Date.now().toString(),
+        title,
+        content,
+        color: selectedColor,
+        user_id: 'current-user', // Replace with actual user ID
+        created_at: new Date().toISOString(),
+        timestamp: ''
+      };
+      const updatedNotes = [...notes, newNote];
+      setNotes(updatedNotes);
+      await asyncStorageUtils.saveNotes(updatedNotes);
+
+      // Update backend
       await homeService.addNote(title, content, selectedColor);
       loadNotes();
       setNoteModalVisible(false);
@@ -47,6 +71,12 @@ export default function NotesScreen() {
 
   const deleteNote = async (id: string) => {
     try {
+      // Optimistically update local state and AsyncStorage
+      const updatedNotes = notes.filter(note => note.id !== id);
+      setNotes(updatedNotes);
+      await asyncStorageUtils.saveNotes(updatedNotes);
+
+      // Update backend
       await homeService.deleteNote(id);
       loadNotes();
     } catch (error) {
@@ -73,7 +103,7 @@ export default function NotesScreen() {
               key={note.id}
               title={note.title}
               content={note.content}
-              timestamp={note.timestamp}
+              timestamp={note.created_at}
               color={note.color}
               onPress={() => { }}
               onDelete={() => deleteNote(note.id)}

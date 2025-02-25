@@ -7,6 +7,7 @@ import TodoItem from '../components/TodoItem';
 import { styles } from '@/constants/todosStyles';
 import { homeService } from '@/services/homeService';
 import type { Todo } from '@/types/database.types';
+import { asyncStorageUtils } from '@/utils/asyncStorage';
 
 export default function TodoScreen() {
   const [todos, setTodos] = useState<Todo[]>([]);
@@ -19,8 +20,16 @@ export default function TodoScreen() {
 
   const loadTodos = async () => {
     try {
-      const data = await homeService.loadAllTodos();
-      setTodos(data);
+      // First load from AsyncStorage for immediate display
+      const cachedTodos = await asyncStorageUtils.loadTodos();
+      setTodos(cachedTodos);
+
+      // Then fetch from backend and update if different
+      const backendTodos = await homeService.loadAllTodos();
+      if (JSON.stringify(backendTodos) !== JSON.stringify(cachedTodos)) {
+        setTodos(backendTodos);
+        await asyncStorageUtils.saveTodos(backendTodos);
+      }
     } catch (error) {
       console.error('Error loading todos:', error);
     }
@@ -30,8 +39,21 @@ export default function TodoScreen() {
     if (newTodoText.trim() === '') return;
 
     try {
+      // Optimistically update local state and AsyncStorage
+      const newTodo: Todo = {
+        id: Date.now().toString(),
+        text: newTodoText,
+        completed: false,
+        user_id: 'current-user', // Replace with actual user ID from your auth system
+        created_at: new Date().toISOString()
+      };
+      const updatedTodos: Todo[] = [...todos, newTodo];
+      setTodos(updatedTodos);
+      await asyncStorageUtils.saveTodos(updatedTodos);
+      
+      // Update backend
       await homeService.addNewTodo(newTodoText);
-      loadTodos();
+      loadTodos(); // Refresh to sync with backend
       setTodoModalVisible(false);
       setNewTodoText('');
     } catch (error) {
@@ -41,10 +63,18 @@ export default function TodoScreen() {
 
   const toggleTodo = async (id: string) => {
     try {
+      // Optimistically update local state and AsyncStorage
+      const updatedTodos: Todo[] = todos.map(todo =>
+        todo.id === id ? { ...todo, completed: !todo.completed } : todo
+      );
+      setTodos(updatedTodos);
+      await asyncStorageUtils.saveTodos(updatedTodos);
+
+      // Update backend
       const todo = todos.find(t => t.id === id);
       if (!todo) return;
       await homeService.toggleTodo(id, todo.completed);
-      loadTodos();
+      loadTodos(); // Refresh to sync with backend
     } catch (error) {
       console.error('Error toggling todo:', error);
     }
@@ -52,8 +82,14 @@ export default function TodoScreen() {
 
   const deleteTodo = async (id: string) => {
     try {
+      // Optimistically update local state and AsyncStorage
+      const updatedTodos: Todo[] = todos.filter(todo => todo.id !== id);
+      setTodos(updatedTodos);
+      await asyncStorageUtils.saveTodos(updatedTodos);
+
+      // Update backend
       await homeService.deleteTodo(id);
-      loadTodos();
+      loadTodos(); // Refresh to sync with backend
     } catch (error) {
       console.error('Error deleting todo:', error);
     }
